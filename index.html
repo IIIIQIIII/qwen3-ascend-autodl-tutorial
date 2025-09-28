@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qwen3-8B 在华为昇腾平台上的保姆级微调与推理教程</title>
+    
+    <!-- 引入 Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 可选: 自定义配置 & 字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
+                    },
+                    typography: ({ theme }) => ({
+                        DEFAULT: {
+                            css: {
+                                'code::before': { content: '""' },
+                                'code::after': { content: '""' }
+                            },
+                        },
+                    }),
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 简单的滚动条样式，提升美感 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        html { scroll-behavior: smooth; }
+        body { font-feature-settings: 'liga' 1, 'calt' 1; }
+    </style>
+</head>
+
+<body id="top" class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans leading-relaxed transition-colors duration-300">
+
+    <!-- GitHub Icon: Top Right -->
+    <div class="fixed top-4 right-4 z-50">
+        <a href="https://github.com/IIIIQIIII/qwen3-ascend-autodl-tutorial" target="_blank" rel="noopener noreferrer" title="GitHub Repository" class="inline-block p-2 bg-white dark:bg-gray-800 rounded-full shadow-md hover:shadow-lg transition-shadow">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+                <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+            </svg>
+        </a>
+    </div>
+
+    <!-- Back to Top: Bottom Right -->
+    <button id="backToTop" class="fixed bottom-6 right-6 z-50 opacity-0 invisible transition-all duration-300 transform translate-y-2 hover:scale-110" title="回到顶部">
+        <div class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white p-4 rounded-full shadow-2xl transition-all duration-300 group">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="transform group-hover:-translate-y-1 transition-transform duration-300">
+                <path d="M18 15l-6-6-6 6"/>
+            </svg>
+            <div class="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+        </div>
+    </button>
+
+    <!-- 页面容器 -->
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+
+        <!-- 文章头部 -->
+        <header class="mb-8 md:mb-12">
+            <h1 class="text-3xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-4 tracking-tight">Qwen3-8B 在华为昇腾平台上的保姆级微调与推理教程</h1>
+            <p class="text-lg text-gray-600 dark:text-gray-400">一份详尽的实践指南，基于AutoDL平台，助你轻松完成Qwen3-8B模型的推理和LoRA微调。</p>
+            <div class="mt-4 border-b border-gray-200 dark:border-gray-700"></div>
+        </header>
+
+        <!-- 主内容区域 -->
+        <main class="space-y-12">
+
+            <!-- 目录 -->
+            <nav class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">目录</h2>
+                <ul class="space-y-2">
+                    <li><a href="#section-1" class="text-blue-600 dark:text-blue-400 hover:underline">1. 环境准备：一键创建昇腾实例</a></li>
+                    <li><a href="#section-2" class="text-blue-600 dark:text-blue-400 hover:underline">2. 基础模型推理：体验原生Qwen3-8B的能力</a></li>
+                    <li><a href="#section-3" class="text-blue-600 dark:text-blue-400 hover:underline">3. 模型微调：使用LoRA定制你自己的模型</a></li>
+                    <li><a href="#section-4" class="text-blue-600 dark:text-blue-400 hover:underline">4. 后续步骤：验证并使用微调后的模型</a></li>
+                </ul>
+            </nav>
+
+            <!-- Section 1: 环境准备 -->
+            <section id="section-1" class="space-y-6">
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white border-l-4 border-blue-500 pl-4">1. 环境准备：一键创建昇腾实例</h2>
+                <p>部署一个复杂的炼丹环境从未如此简单。我们从 `CodeWithGPU` 社区找到已经配置好一切的镜像开始。</p>
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">步骤 1：在 CodeWithGPU 找到目标镜像</h3>
+                <p>首先，访问 `CodeWithGPU` 平台，搜索 `qwen3`。在搜索结果中，找到并选择适配华为昇腾（Ascend）的 `Qwen3-ALL-Ascend` 镜像。</p>
+                <img src="https://raw.githubusercontent.com/IIIIQIIII/qwen3-ascend-autodl-tutorial/main/assets/codewithgpu_qwen3_ascend.png" alt="在CodeWithGPU上搜索并选择Qwen3-Ascend镜像" class="rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-full">
+                
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">步骤 2：跳转到 AutoDL 创建实例</h3>
+                <p>在镜像详情页，直接点击 “AutoDL创建实例” 按钮，它将引导我们进入预设好配置的创建页面。</p>
+                <img src="https://raw.githubusercontent.com/IIIIQIIII/qwen3-ascend-autodl-tutorial/main/assets/codewithgpu_create_instance.png" alt="点击按钮，从CodeWithGPU跳转到AutoDL创建实例" class="rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-full">
+
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">步骤 3：确认配置并启动实例</h3>
+                <p>跳转后，你会发现AutoDL的实例创建页面已经为你智能地选择了华为昇腾910B的GPU、合适的镜像以及其他配置。检查无误后，点击右下角的 “创建并开机” 即可。</p>
+                <img src="https://raw.githubusercontent.com/IIIIQIIII/qwen3-ascend-autodl-tutorial/main/assets/configure_and_launch_autodl_instance.png" alt="在AutoDL上确认配置并启动实例" class="rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-full">
+
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">步骤 4：进入JupyterLab开发环境</h3>
+                <p>实例创建并开机成功后（状态变为“运行中”），在AutoDL的“容器实例”面板中，找到你的实例，并点击 “JupyterLab”。这是我们进行所有操作的主要入口。</p>
+                <img src="https://raw.githubusercontent.com/IIIIQIIII/qwen3-ascend-autodl-tutorial/main/assets/launch_jupyterlab_from_dashboard.png" alt="从AutoDL仪表盘启动JupyterLab" class="rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-full">
+
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">步骤 5：打开终端</h3>
+                <p>进入JupyterLab后，打开一个终端（Terminal）。你会看到一个欢迎界面，其中包含了当前环境的系统资源信息，确认GPU为 Ascend 类型。</p>
+                <img src="https://raw.githubusercontent.com/IIIIQIIII/qwen3-ascend-autodl-tutorial/main/assets/terminal_welcome_with_system_specs.png" alt="JupyterLab终端的欢迎界面与系统信息" class="rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-full">
+            </section>
+
+            <!-- Section 2: 基础模型推理 -->
+            <section id="section-2" class="space-y-6">
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white border-l-4 border-blue-500 pl-4">2. 基础模型推理：体验原生Qwen3-8B的能力</h2>
+                <p>在微调之前，让我们先来体验一下基础模型的对话能力。执行以下命令来启动命令行对话程序：</p>
+                <pre class="bg-gray-900 dark:bg-black rounded-lg p-4 text-sm text-white overflow-x-auto"><code class="language-bash">./1-8B推理-命令行.sh</code></pre>
+                <p>脚本会自动加载模型。请耐心等待，直到日志加载完成，并出现 `User:` 提示符。</p>
+                <img src="https://raw.githubusercontent.com/IIIIQIIII/qwen3-ascend-autodl-tutorial/main/assets/launch_cli_chat_application.png" alt="模型加载完成，准备开始对话" class="rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-full">
+                <p>现在，你可以开始和模型进行对话了。它不仅能进行日常聊天，还能完成复杂的编码任务。体验完成后，按 `Ctrl + C` 退出对话程序。</p>
+                <img src="https://raw.githubusercontent.com/IIIIQIIII/qwen3-ascend-autodl-tutorial/main/assets/cli_chat_code_generation_demo.png" alt="命令行对话演示：生成Python代码" class="rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-full">
+            </section>
+            
+            <!-- Section 3: 模型微调 -->
+            <section id="section-3" class="space-y-6">
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white border-l-4 border-blue-500 pl-4">3. 模型微调：使用LoRA定制你自己的模型</h2>
+                <p>接下来是激动人心的环节——使用我们自己的数据对模型进行微调。这里我们使用 `LLaMA-Factory` 框架和 LoRA 技术进行高效微调。</p>
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">微调脚本详解</h3>
+                <p>镜像中 `2-8B模型一键微调.sh` 脚本的内容如下。它配置了所有微调所需的参数，例如模型路径、数据集、输出目录、学习率等。</p>
+                <pre class="bg-gray-900 dark:bg-black rounded-lg p-4 text-sm text-white overflow-x-auto"><code class="language-shell">cd /root/LLaMA-Factory/
+llamafactory-cli train \
+    --stage sft \
+    --do_train \
+    --model_name_or_path /root/Qwen3-8B \
+    --dataset distill_psychology-10k-r1 \
+    --dataset_dir /root/LLaMA-Factory/data \
+    --template qwen3 \
+    --finetuning_type lora \
+    --output_dir /root/autodl-tmp/Lora-LLM/saves/Qwen3-8B/lora/sft \
+    --overwrite_cache \
+    --overwrite_output_dir \
+    --cutoff_len 1024 \
+    --preprocessing_num_workers 16 \
+    --per_device_train_batch_size 2 \
+    --per_device_eval_batch_size 1 \
+    --gradient_accumulation_steps 8 \
+    --lr_scheduler_type cosine \
+    --logging_steps 50 \
+    --warmup_steps 20 \
+    --save_steps 100 \
+    --eval_steps 50 \
+    --eval_strategy steps \
+    --load_best_model_at_end \
+    --learning_rate 5e-5 \
+    --num_train_epochs 5.0 \
+    --max_samples 1000 \
+    --val_size 0.1 \
+    --plot_loss \
+    --fp16</code></pre>
+                
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">开始微调</h3>
+                <p>在终端中执行以下命令启动微调过程：</p>
+                <pre class="bg-gray-900 dark:bg-black rounded-lg p-4 text-sm text-white overflow-x-auto"><code class="language-bash">./2-8B模型一键微调.sh</code></pre>
+                <p>训练开始后，你会看到详细的日志输出，包括训练进度、loss变化等。</p>
+                <img src="https://raw.githubusercontent.com/IIIIQIIII/qwen3-ascend-autodl-tutorial/main/assets/sft_training_evaluation_output.png" alt="模型微调与评估过程的终端日志" class="rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-full">
+
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">可视化训练结果</h3>
+                <p>由于我们在脚本中添加了 `--plot_loss` 参数，训练完成后，框架会自动生成一张损失曲线图。从图中我们可以直观地看到 `eval_loss` 随着训练步数的增加而稳步下降，证明我们的微调是有效的。</p>
+                <img src="https://raw.githubusercontent.com/IIIIQIIII/qwen3-ascend-autodl-tutorial/main/assets/training_eval_loss.png" alt="训练过程中的评估损失(eval_loss)变化曲线" class="rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-full">
+            </section>
+            
+            <!-- Section 4: 后续步骤 -->
+            <section id="section-4" class="space-y-6">
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white border-l-4 border-blue-500 pl-4">4. 后续步骤：验证并使用微调后的模型</h2>
+                <p>微调完成后，LoRA权重文件已保存在脚本指定的 `--output_dir` 目录中。</p>
+                <p>现在，你可以使用 `3-8B-推理-命令行-微调后.sh` 脚本来加载基础模型和你的LoRA权重，与你<strong>专属定制</strong>后的模型进行对话，检验它的新能力！</p>
+            </section>
+        </main>
+        
+        <!-- 页脚 -->
+        <footer class="mt-12 md:mt-16 pt-8 border-t border-gray-200 dark:border-gray-700 text-center text-gray-500 dark:text-gray-400">
+            <p>&copy; 2025. 本教程由 MASHIJIAN 创建。</p>
+        </footer>
+    </div>
+
+    <script>
+        // Back to top button functionality
+        const backToTopButton = document.getElementById('backToTop');
+        
+        // Show/hide button based on scroll position
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) { // Show after scrolling 300px
+                backToTopButton.classList.remove('opacity-0', 'invisible', 'translate-y-2');
+                backToTopButton.classList.add('opacity-100', 'visible', 'translate-y-0');
+            } else {
+                backToTopButton.classList.add('opacity-0', 'invisible', 'translate-y-2');
+                backToTopButton.classList.remove('opacity-100', 'visible', 'translate-y-0');
+            }
+        });
+        
+        // Smooth scroll to top when clicked
+        backToTopButton.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    </script>
+</body>
+</html>
